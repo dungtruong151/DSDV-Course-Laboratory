@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 1</title>
+    <style>
+        .name {
+            color: blue;
+        }
+        .id {
+            font-weight: bold;
+        }
+        .lab_name {
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h3 class="name">Truong Tri Dung</h3>
+    <h4 class="id">ITCSIU21126</h4>
+    <h4 class="id">Data Science and Data Visualization</h4>
+    <h4 class="lab_name">Lab 1 – Introduction to HTML, CSS, SVG, and JavaScript</h4>
+    <p>This is all my own work. I did not copy the code from any other source.</p>
+    <br>    
+    <svg id=”initials” width=”250” height=”150”>
+        <rect x="44" y="8" width="12" height="103" rx="5" fill="#0000FF"/>
+        <rect y="2" width="99" height="12" rx="5" fill="#0000FF"/>
+        <rect x="157" y="8" width="12" height="103" rx="5" fill="#0000FF"/>
+        <rect x="113" y="2" width="99" height="12" rx="5" fill="#0000FF"/>
+        <rect x="246" y="2" width="15" height="109" rx="5" fill="#0000FF"/>
+        <rect x="250.74" y="-1" width="65.6849" height="15.6672" rx="5" transform="rotate(17.61 250.74 -1)" fill="#0000FF"/>
+        <rect x="246" y="97.8164" width="65.6849" height="15.6672" rx="5" transform="rotate(-20.3261 246 97.8164)" fill="#0000FF"/>
+        <rect x="299" y="22" width="14" height="68" rx="5" fill="#0000FF"/>
+    </svg> 
+    <br>
+    <label for="name">Enter your name:</label>
+    <input type="text" id="name" name="name">
+    <button onclick="generateHistogram()">Submit</button>
+    <br>
+    <svg id="histogram" width="350" height="400">
+    </svg>
+
+    <script>
+        function addEltToSVG(svg, name, attrs) {
+            var element;
+            if (name === 'text') {
+                element = document.createElementNS("http://www.w3.org/2000/svg", name);
+                element.textContent = attrs.text || ''; 
+                delete attrs.text; 
+            } else {
+                element = document.createElementNS("http://www.w3.org/2000/svg", name);
+            }
+
+            if (attrs === undefined) attrs = {};
+            for (var key in attrs) {
+                element.setAttributeNS(null, key, attrs[key]);
+            }
+            svg.appendChild(element);
+        }
+
+        function createHistogram(svg, str) {
+            var bins = ['A-D', 'E-H', 'I-L', 'M-P', 'Q-U', 'V-Z'];
+            var binRanges = [[65, 68], [69, 72], [73, 76], [77, 80], [81, 85], [86, 90]];
+
+            var binCounts = [0, 0, 0, 0, 0, 0];
+
+            str = str.toUpperCase();
+            for (var i = 0; i < str.length; i++) {
+                var charCode = str.charCodeAt(i);
+                for (var j = 0; j < binRanges.length; j++) {
+                    if (charCode >= binRanges[j][0] && charCode <= binRanges[j][1]) {
+                        binCounts[j]++;
+                        break;
+                    }
+                }
+            }
+
+            var barWidth = 50;
+            var startX = 20;
+            var startY = 20;
+            var lineHeight = 50;
+
+            var max_index = 0;
+            for (var k = 1; k < bins.length; k++) {
+                if (binCounts[max_index] < binCounts[k]) {
+                    max_index = k;
+                }
+            }
+
+            for (var k = 0; k < bins.length; k++) {
+                var x = startX + k * barWidth;
+                var y = startY;
+
+                addEltToSVG(svg, 'rect', {
+                    'x': x,
+                    'y': y + (binCounts[max_index] - binCounts[k]) * lineHeight,
+                    'width': barWidth,
+                    'height': binCounts[k] * lineHeight + 1,
+                    'fill': 'blue',
+                    'stroke': 'black'
+                });
+            }
+            
+            bins.forEach(function(bin, index) {
+                addEltToSVG(svg, 'text', {
+                    'x': startX + index * barWidth + 10,
+                    'y': startY + binCounts[max_index] * lineHeight + 25,
+                    'fill': 'black',
+                    'font-size': '16px',
+                    'text': bin
+                });
+
+                addEltToSVG(svg, 'text', {
+                    'x': startX + index * barWidth + 20,
+                    'y': startY + (binCounts[max_index] - binCounts[index]) * lineHeight + 20,
+                    'fill': 'white',
+                    'font-size': '16px',
+                    'text': binCounts[index] == 0 ? '' : binCounts[index].toString()
+                });
+            });
+        }
+
+        function generateHistogram() {
+            var svg = document.getElementById('histogram');
+            var name = document.getElementById('name').value;
+            svg.innerHTML = '';
+            createHistogram(svg, name);
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 3</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+  <h1>Lab 3 – D3.js - scales</h1>
+  <h2>Data science and data visualization</h2>
+  <p>Truong Tri Dung</p>
+  <p>ITCSIU21126</p>
+  <p>This is all my own work. I did not copy the code from any other source.</p>
+  <svg id="scatterplot"></svg>
+  <script>
+    d3.csv("https://tungth.github.io/data/vn-provinces-data.csv", rowConverter)
+      .then(data => {
+        // console.log(data);
+        drawScatterplot(data);
+      });
+
+    function rowConverter(row) {
+      return {
+        area: +row.area,
+        population: +row.population,
+        density: +row.density,
+        grdp: parseFloat(row['GRDP-VND'].replace(',', '.'))
+      };
+    }
+
+    function drawScatterplot(data) {
+      const svgWidth = 600;
+      const svgHeight = 300;
+      const margin = { top: 10, right: 10, bottom: 40, left: 60 };
+
+      const svg = d3.select("#scatterplot")
+        .attr("width", svgWidth)
+        .attr("height", svgHeight)
+
+      const xScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.population))
+        .range([margin.left, svgWidth - margin.right]);
+
+      const yScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.grdp)) 
+        .range([svgHeight - margin.bottom, margin.top]);
+
+      const areaScale = d3.scaleSqrt()
+        .domain(d3.extent(data, d => d.area))
+        .range([2, 10]);
+
+      const colorScale = d3.scaleSequential()
+        .domain(d3.extent(data, d => d.density))
+        .interpolator(d3.interpolateTurbo);
+
+      svg.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", d => xScale(d.population))
+        .attr("cy", d => yScale(d.grdp))
+        .attr("r", d => areaScale(d.area))
+        .attr("fill", d => colorScale(d.density));
+
+      const xAxis = d3.axisBottom(xScale);
+      const yAxis = d3.axisLeft(yScale);
+
+      svg.append("g")
+        .attr("transform", `translate(0,${svgHeight - margin.bottom})`)
+        .call(xAxis)
+        .append("text")
+        .attr("x", svgWidth - margin.right - 20) 
+        .attr("y", margin.bottom - 5)
+        .text("Population")
+        .attr("fill", "black");
+
+      svg.append("g")
+        .attr("transform", `translate(${margin.left},0)`)
+        .call(yAxis)
+        .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", - margin.left / 2)
+        .attr("y", - margin.left + 20) 
+        .text("GRDP-VND (million VND/person/year)")
+        .attr("fill", "black");
+    }
+
+  </script>
+</body>
+</html>

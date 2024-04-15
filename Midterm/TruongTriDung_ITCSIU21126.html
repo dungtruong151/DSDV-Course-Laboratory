@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Midterm</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+  <div id="chart"></div>
+  <script>
+    d3.csv("time_series_covid19_confirmed_global.csv", rowConverter)
+      .then(data => {
+        data = data.filter(row => row.cases !== 0);
+        drawChart(data);
+      }); 
+    
+    function rowConverter(row) {
+      return {
+        place: row['Province/State'] + ', ' + row['Country/Region'],
+        cases: +row['4/4/22']
+      };  
+    }
+
+    function drawChart(data) {
+      const svgWidth = 1500;
+      const svgHeight = 10000;
+      const margin = { top: 10, right: 20, bottom: 50, left: 300 };
+
+      const svg = d3.select("#chart")
+        .append("svg")
+        .attr("width", svgWidth)
+        .attr("height", svgHeight)
+
+      const xScale = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d.cases)])
+        .range([margin.left, svgWidth - margin.right - 50]);
+
+      const yScale = d3.scaleBand()
+        .domain(data.map(d => d.place))
+        .range([margin.top, svgHeight - margin.bottom])
+        .padding(0.1);
+
+      const colorScale = d3.scaleSequential()
+        .domain([0, d3.max(data, d => d.cases)])
+        .interpolator(d3.interpolateYlOrRd);
+
+      const xAxis = d3.axisBottom(xScale);
+      const yAxis = d3.axisLeft(yScale);
+
+      svg.append("g")
+        .attr("transform", `translate(5, ${svgHeight - margin.bottom + 5})`)
+        .call(xAxis)
+        .append("text")
+        .attr("x", svgWidth - margin.right - 50) 
+        .attr("y", - 30)
+        .attr("font-size", "30px")
+        .attr("font-weight", "bold")
+        .text("Cases")
+        .attr("fill", "black");
+
+      svg.append("g")
+        .attr("transform", `translate(${margin.left}, 0)`)
+        .call(yAxis)
+        .append("text")
+        .attr("x", - 100) 
+        .attr("y", 100)
+        .attr("font-size", "30px")
+        .attr("font-weight", "bold")
+        .text("Place")
+        .attr("fill", "black");
+
+      svg.selectAll("rect")
+        .data(data)
+        .enter()
+        .append("rect")
+        .attr("x", margin.left + 5)
+        .attr("y", (d, i) => yScale(d.place))
+        .attr("width", 0)
+        .transition() 
+        .duration(700) 
+        .attr("width", (d) => xScale(d.cases) - margin.left)
+        .attr("height", yScale.bandwidth())
+        .attr("fill", (d) => colorScale(d.cases));
+
+      svg.selectAll(".label")
+        .data(data)
+        .enter()
+        .append("text")
+        .attr("x", (d) => xScale(d.cases) + 10) 
+        .attr("y", (d, i) => yScale(d.place) + yScale.bandwidth() / 2 + 5) 
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "11px")
+        .attr("fill", "white")
+        .text((d) => d.cases)
+        .transition()
+        .delay(500)
+        .attr("fill", "black");
+    }
+  </script>
+</body>
+</html>

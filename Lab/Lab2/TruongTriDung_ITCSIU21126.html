@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 2</title>
+  <style>
+    .circle {
+      fill: steelblue;
+      opacity: 0.7;
+    }
+    .failed {
+      fill: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lab 2 - Introduction to D3.js</h1>
+  <h2>Data Science and Data Visualization</h2>
+  <p>Truong Tri Dung</p>
+  <p>ITCSIU21126</p>
+  <p>This is all my own work. I did not copy the code from any other source.</p>
+
+  <div id="barChart"></div>
+  <svg id="scatterplot" width="600" height="400"></svg>
+  <br>
+  <svg id="histogram" width="550" height="400">
+  </svg>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    // Bar Chart
+    const dataset = Array.from({ length: 20 }, () => Math.floor(Math.random() * 100));
+
+    // console.log(dataset);
+
+    const barChartWidth = 500;
+    const barChartHeight = 300;
+
+    const svgBar = d3.select("#barChart")
+      .append("svg")
+      .attr("width", barChartWidth)
+      .attr("height", barChartHeight);
+
+    const xScale = d3.scaleBand()
+      .domain(d3.range(dataset.length))
+      .range([0, barChartWidth])
+      .paddingInner(0.1);
+
+    const yScale = d3.scaleLinear()
+      .domain([0, d3.max(dataset)])
+      .range([0, barChartHeight]);
+
+    svgBar.selectAll("rect")
+      .data(dataset)
+      .enter()
+      .append("rect")
+      .attr("x", (d, i) => xScale(i))
+      .attr("y", (d) => barChartHeight - yScale(d))
+      .attr("width", xScale.bandwidth())
+      .attr("height", (d) => yScale(d))
+      .attr("fill", (d) => `rgb(${d * 2}, 0, 0)`)
+
+    svgBar.selectAll("text")
+      .data(dataset)
+      .enter()
+      .append("text")
+      .text((d) => d)
+      .attr("x", (d ,i) => xScale(i) + 5)
+      .attr("y", (d) => d >= 5 ? barChartHeight - yScale(d) + 15 : barChartHeight - yScale(d) - 10)
+      .attr("font-family", "sans-serif")
+      .attr("font-size", "11px")
+      .attr("fill", (d) => d >= 5 ? "white" : "black")
+
+    // Scatterplot
+    d3.csv("https://tungth.github.io/data/vis-lab2-data.csv", rowConverter)
+    .then(data => {
+        // console.log(data);
+        drawScatterplot(data);
+    });
+
+    function rowConverter(row) {
+        return {
+            midterm: +row.Midterm,
+            final: +row.Final,
+            total: (+row.Midterm * 0.4) + (+row.Final * 0.6),
+            name: row.Student_ID + '_' + row.Lab
+        };
+    }
+
+    function drawScatterplot(data) {
+        const scatterplot = d3.select("#scatterplot")
+            .append("svg")
+            .attr("width", 400)
+            .attr("height", 400);
+
+        const xScale = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.midterm)])
+            .range([50, 350]);
+
+        const yScale = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.final)])
+            .range([350, 50]);
+
+        const xAxis = d3.axisBottom().scale(xScale);
+        scatterplot.append("g").attr("transform", "translate( 0, 350)").call(xAxis);
+
+        const yAxis = d3.axisLeft().scale(yScale);
+        scatterplot.append("g").attr("transform", "translate(50, 0)").call(yAxis);
+
+        scatterplot.selectAll("circle")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("cx", d => xScale(d.midterm))
+            .attr("cy", d => yScale(d.final))
+            .attr("r", 5)
+            .attr("fill", d => d.total >= 50 ? `blue` : `red`);
+    }
+
+    // Histogram
+    function addEltToSVG(svg, name, attrs) {
+        var element;
+        if (name === 'text') {
+            element = document.createElementNS("http://www.w3.org/2000/svg", name);
+            element.textContent = attrs.text || ''; 
+            delete attrs.text; 
+        } else {
+            element = document.createElementNS("http://www.w3.org/2000/svg", name);
+        }
+
+        if (attrs === undefined) attrs = {};
+        for (var key in attrs) {
+            element.setAttributeNS(null, key, attrs[key]);
+        }
+        svg.appendChild(element);
+    }
+
+    function createHistogram(svg, str) {
+        var bins = ['0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90-99'];
+        var binRanges = [[0, 9], [10, 19], [20, 29], [30, 39], [40, 49], [50, 59], [60, 69], [70, 79], [80, 89], [90, 99]];
+
+        var binCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        for (var i = 0; i < dataset.length; i++) {
+            for (var j = 0; j < binRanges.length; j++) {
+                if (dataset[i] >= binRanges[j][0] && dataset[i] <= binRanges[j][1]) {
+                    binCounts[j]++;
+                    break;
+                }
+            }
+        }
+
+        // alert(binCounts);
+
+        var barWidth = 50;
+        var startX = 20;
+        var startY = 20;
+        var lineHeight = 50;
+
+        var max_index = 0;
+        for (var k = 1; k < bins.length; k++) {
+            if (binCounts[max_index] < binCounts[k]) {
+                max_index = k;
+            }
+        }
+
+        for (var k = 0; k < bins.length; k++) {
+            var x = startX + k * barWidth;
+            var y = startY;
+
+            addEltToSVG(svg, 'rect', {
+                'x': x,
+                'y': y + (binCounts[max_index] - binCounts[k]) * lineHeight,
+                'width': barWidth,
+                'height': binCounts[k] * lineHeight + 1,
+                'fill': 'blue',
+                'stroke': 'black'
+            });
+        }
+        
+        bins.forEach(function(bin, index) {
+            addEltToSVG(svg, 'text', {
+                'x': startX + index * barWidth + 10,
+                'y': startY + binCounts[max_index] * lineHeight + 25,
+                'fill': 'black',
+                'font-size': '16px',
+                'text': bin
+            });
+
+            addEltToSVG(svg, 'text', {
+                'x': startX + index * barWidth + 20,
+                'y': startY + (binCounts[max_index] - binCounts[index]) * lineHeight + 20,
+                'fill': 'white',
+                'font-size': '16px',
+                'text': binCounts[index] == 0 ? '' : binCounts[index].toString()
+            });
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      generateHistogram();
+    });
+
+    function generateHistogram() {
+        var svg = document.getElementById('histogram');
+        svg.innerHTML = '';
+        createHistogram(svg, dataset);
+    }
+
+  </script>
+</body>
+</html>
