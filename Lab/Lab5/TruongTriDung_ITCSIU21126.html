@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 5</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+  <h1>Lab 5 –D3.js - Interaction</h1>
+  <h2>Data science and data visualization</h2>
+  <p>Truong Tri Dung</p>
+  <p>ITCSIU21126</p>
+  <p>This is all my own work. I did not copy the code from any other source.</p>
+  <div id="chart"></div>
+  <div id="tooltip" class="hidden" style="position: absolute;">
+    <p><span id="value"></span></p>
+  </div>
+  <script>
+    d3.csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv", rowConverter)
+      .then(data => {
+        console.log(data);
+        drawChart(data);
+      }); 
+    
+    function rowConverter(row) {
+      return {
+        province: row['Province/State'],
+        country: row['Country/Region'],
+        latitude: +row['Lat'],
+        longitude: +row['Long'],
+        cases: +row['4/5/20']
+      };
+    }
+
+    function drawChart(data) {
+      const svgWidth = 1000;
+      const svgHeight = 650;
+      const margin = { top: 10, right: 20, bottom: 50, left: 70 };
+
+      const svg = d3.select("#chart")
+        .append("svg")
+        .attr("width", svgWidth)
+        .attr("height", svgHeight)
+
+      const xScale = d3.scaleLinear()
+        .domain([d3.min(data, d => d.longitude), d3.max(data, d => d.longitude)])
+        .range([margin.left, svgWidth - margin.right - 50]);
+
+      const yScale = d3.scaleLinear()
+        .domain([d3.min(data, d => d.latitude), d3.max(data, d => d.latitude)])
+        .range([svgHeight - margin.bottom,  margin.top]);
+
+      const colorScale = d3.scaleSequential()
+        .domain([d3.min(data, d => d.cases), d3.max(data, d => d.cases)])
+        .interpolator(d3.interpolateReds);
+
+      const xAxis = d3.axisBottom(xScale);
+      const yAxis = d3.axisLeft(yScale);
+
+      svg.append("g")
+        .attr("transform", `translate(5, ${(svgHeight - margin.bottom + 5)/2})`)
+        .call(xAxis);
+
+      svg.append("g")
+        .attr("transform", `translate(${svgWidth / 2 + 5}, ${ -2 })`)
+        .call(yAxis);
+
+      svg.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", d => xScale(d.longitude))
+        .attr("cy", d => yScale(d.latitude))
+        .attr("r", 5)
+        .attr("fill", d => colorScale(d.cases))
+        .on("mouseover", (event, d) => {
+          d3.select("#tooltip")
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 15) + "px")
+            .select("#value")
+            .text(d.province + ', ' + d.country + ': ' + d.cases)
+            .classed("hidden", false);
+          d3.select(this).attr("fill", "black");
+        })
+        .on("mouseout", () => {
+          d3.select("#tooltip").classed("hidden", true);
+        });
+    }
+  </script>
+</body>
+</html>

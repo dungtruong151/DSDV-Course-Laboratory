@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 5</title>
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    rect {
+      pointer-events: all;
+      fill-opacity: 0;
+      stroke-opacity: 0;
+      z-index: 1;
+    }
+
+    .tooltip {
+      position: absolute;
+      padding: 5px;
+      background-color: rgb(11, 40, 65);
+      color: white;
+      border: 0px solid white;
+      border-radius: 0px;
+      display: none;
+      opacity: .75;
+      font-size: 14px;
+    }
+
+    .tooltip-line {
+      stroke-opacity: 0.5;
+    } 
+  </style>
+</head>
+
+<body>
+  <h1>Lab 6 –D3.js – Line and stacked area chart</h1>
+  <h2>Data science and data visualization</h2>
+  <p>Truong Tri Dung</p>
+  <p>ITCSIU21126</p>
+  <p>This is all my own work. I did not copy the code from any other source.</p>
+  <div id="chart"></div>
+  <script>
+    d3.csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+      .then(data => {
+        let filteredData = data.filter(d => ["Vietnam", "US", "France", "Italy"].includes(d["Country/Region"]));
+
+        let transformedData = [];
+        filteredData.forEach(d => {
+          Object.keys(d).forEach(key => {
+            if (new Date(key) >= new Date("04-01-20") && new Date(key) <= new Date("05-01-20")) {
+              let existingData = transformedData.find(item => item.country === d["Country/Region"] && item.date.getTime() === new Date(key).getTime());
+              if (existingData) {
+          existingData.cases += +d[key];
+              } else {
+          transformedData.push({
+            country: d["Country/Region"],
+            date: new Date(key),
+            cases: +d[key]
+          });
+              }
+            }
+          });
+        });
+
+        let nestedData = d3.nest()
+          .key(d => d.country)
+          .entries(transformedData);
+
+        console.log(nestedData);
+        drawChart(nestedData);
+      }); 
+
+    function drawChart(data) {
+      const svgWidth = 1000;
+      const svgHeight = 650;
+      const margin = { top: 10, right: 20, bottom: 50, left: 70 };
+      const width = svgWidth - margin.left - margin.right;
+      const height = svgHeight - margin.top - margin.bottom;
+
+      const svg = d3.select("#chart")
+        .append("svg")
+        .attr("width", svgWidth)
+        .attr("height", svgHeight)
+
+      const xScale = d3.scaleLinear()
+        .domain([0, 30])
+        .range([margin.left, svgWidth - margin.right]);
+
+      const yScale = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d3.max(d.values, d => d.cases))])
+        .range([svgHeight - margin.bottom, margin.top]);
+
+      const xAxis = d3.axisBottom(xScale);
+      const yAxis = d3.axisLeft(yScale);
+
+      svg.append("g")
+        .attr("transform", `translate(0, ${svgHeight - margin.bottom})`)
+        .call(xAxis)
+        .selectAll("text")
+        .text(d => {
+          let date = new Date("04-01-20");
+          date.setDate(date.getDate() + d);
+          return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        });
+
+      svg.append("g")
+        .attr("transform", `translate(${margin.left}, 0)`)
+        .call(yAxis);
+
+      const line = d3.line()
+        .x(d => xScale((d.date.getTime() - new Date("04-01-20").getTime()) / (1000 * 60 * 60 * 24)))
+        .y(d => yScale(d.cases));
+
+      svg.selectAll(".line")
+        .data(data)
+        .enter()
+        .append("path")
+        .attr("class", "line")
+        .attr("d", d => line(d.values))
+        .attr("fill", "none")
+        .attr("stroke", d => {
+          if (d.key === "Vietnam") {
+            return "red";
+          } else if (d.key === "US") {
+            return "blue";
+          } else if (d.key === "France") {
+            return "green";
+          } else if (d.key === "Italy") {
+            return "orange";
+          }
+        });
+
+      const tooltip0 = d3.select("body")
+        .append("div")
+        .attr("class", "tooltip");
+
+      const tooltip1 = d3.select("body")
+        .append("div")
+        .attr("class", "tooltip");
+
+      const tooltip2 = d3.select("body")
+        .append("div")
+        .attr("class", "tooltip");
+
+      const tooltip3 = d3.select("body")
+        .append("div")
+        .attr("class", "tooltip");
+      
+      const tooltipRawDate = d3.select("body")
+        .append("div")
+        .attr("class", "tooltip");
+      
+      const circle0 = svg.append("circle")
+        .attr("r", 0)
+        .attr("fill", "red")
+        .style("stroke", "white")
+        .attr("opacity", 0.7)
+        .style("pointer-events", "none");
+
+      const circle1 = svg.append("circle")
+        .attr("r", 0)
+        .attr("fill", "red")
+        .style("stroke", "white")
+        .attr("opacity", 0.7)
+        .style("pointer-events", "none");
+
+      const circle2 = svg.append("circle")
+        .attr("r", 0)
+        .attr("fill", "red")
+        .style("stroke", "white")
+        .attr("opacity", 0.7)
+        .style("pointer-events", "none");
+
+      const circle3 = svg.append("circle")
+        .attr("r", 0)
+        .attr("fill", "red")
+        .style("stroke", "white")
+        .attr("opacity", 0.7)
+        .style("pointer-events", "none");
+
+      const tooltipLineX = svg.append("line")
+        .attr("class", "tooltip-line")
+        .attr("id", "tooltip-line-x")
+        .attr("stroke", "red")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "2,2");
+  
+      const tooltipLineY0 = svg.append("line")
+        .attr("class", "tooltip-line")
+        .attr("id", "tooltip-line-y")
+        .attr("stroke", "red")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "2,2");
+      
+      const tooltipLineY1 = svg.append("line")
+        .attr("class", "tooltip-line")
+        .attr("id", "tooltip-line-y")
+        .attr("stroke", "red")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "2,2");
+
+      const tooltipLineY2 = svg.append("line")
+        .attr("class", "tooltip-line")
+        .attr("id", "tooltip-line-y")
+        .attr("stroke", "red")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "2,2");
+
+      const tooltipLineY3 = svg.append("line")
+        .attr("class", "tooltip-line")
+        .attr("id", "tooltip-line-y")
+        .attr("stroke", "red")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "2,2");
+
+      const listeningRect = svg.append("rect")
+        .attr("width", svgWidth)
+        .attr("height", svgHeight);
+
+      listeningRect.on("mousemove", function (event) {
+        const xCoord = d3.pointer(event, this)[0];
+        const x0 = xScale.invert(xCoord);
+        const i = Math.round(x0);
+        const d0 = data[0].values[i];
+        const d1 = data[1].values[i];
+        const d2 = data[2].values[i];
+        const d4 = data[3].values[i];
+        const xPos = xScale(i);
+        const yPos0 = yScale(d0.cases);
+        const yPos1 = yScale(d1.cases);
+        const yPos2 = yScale(d2.cases);
+        const yPos3 = yScale(d4.cases);
+
+        circle0.attr("cx", xPos).attr("cy", yPos0);
+        circle1.attr("cx", xPos).attr("cy", yPos1);
+        circle2.attr("cx", xPos).attr("cy", yPos2);
+        circle3.attr("cx", xPos).attr("cy", yPos3);
+
+        circle0.transition()
+          .duration(50)
+          .attr("r", 3);
+          
+        circle1.transition()
+          .duration(50)
+          .attr("r", 3);
+
+        circle2.transition()
+          .duration(50)
+          .attr("r", 3);
+
+        circle3.transition()
+          .duration(50)
+          .attr("r", 3);
+
+        tooltipLineX.style("display", "block").attr("x1", xPos).attr("x2", xPos).attr("y1", 0).attr("y2", height + 10);
+        tooltipLineY0.style("display", "block").attr("y1", yPos0).attr("y2", yPos0).attr("x1", margin.left).attr("x2", width + margin.left);
+        tooltipLineY1.style("display", "block").attr("y1", yPos1).attr("y2", yPos1).attr("x1", margin.left).attr("x2", width + margin.left);
+        tooltipLineY2.style("display", "block").attr("y1", yPos2).attr("y2", yPos2).attr("x1", margin.left).attr("x2", width + margin.left);
+        tooltipLineY3.style("display", "block").attr("y1", yPos3).attr("y2", yPos3).attr("x1", margin.left).attr("x2", width + margin.left);
+
+        tooltip0
+          .style("display", "block")
+          .style("right", `${svgWidth + 442}px`)
+          .style("top", `${yPos0 + 220}px`)
+          .html(`${d0.cases !== undefined ? d0.cases : 'N/A'}`);
+
+        tooltip1
+          .style("display", "block")
+          .style("right", `${svgWidth + 442}px`)
+          .style("top", `${yPos1 + 220}px`)
+          .html(`${d1.cases !== undefined ? d1.cases : 'N/A'}`);
+
+        tooltip2
+          .style("display", "block")
+          .style("right", `${svgWidth + 442}px`)
+          .style("top", `${yPos2 + 220}px`)
+          .html(`${d2.cases !== undefined ? d2.cases : 'N/A'}`);
+
+        tooltip3
+          .style("display", "block")
+          .style("right", `${svgWidth + 442}px`)
+          .style("top", `${yPos3 + 220}px`)
+          .html(`${d4.cases !== undefined ? d4.cases : 'N/A'}`);
+
+        tooltipRawDate
+          .style("display", "block")
+          .style("left", `${xPos - 20}px`)
+          .style("top", `${height + 240}px`)
+          .html(`${d0.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`);
+      });
+
+      listeningRect.on("mouseleave", function () {
+        circle0.transition().duration(50).attr("r", 0);
+        circle1.transition().duration(50).attr("r", 0);
+        circle2.transition().duration(50).attr("r", 0);
+        circle3.transition().duration(50).attr("r", 0);
+        tooltip0.style("display", "none");
+        tooltip1.style("display", "none");
+        tooltip2.style("display", "none");
+        tooltip3.style("display", "none");
+        tooltipRawDate.style("display", "none");
+        tooltipLineX.attr("x1", 0).attr("x2", 0);
+        tooltipLineY0.attr("y1", 0).attr("y2", 0);
+        tooltipLineY1.attr("y1", 0).attr("y2", 0);
+        tooltipLineY2.attr("y1", 0).attr("y2", 0);
+        tooltipLineY3.attr("y1", 0).attr("y2", 0);
+        tooltipLineX.style("display", "none");
+        tooltipLineY0.style("display", "none");
+        tooltipLineY1.style("display", "none");
+        tooltipLineY2.style("display", "none");
+        tooltipLineY3.style("display", "none");
+      });
+
+      //add legend 
+      const legend = svg.append("g")
+        .attr("transform", `translate(${margin.left + 200}, 10)`)
+        .attr("font-family", "sans-serif")
+        .attr("font-size", 14)
+        .selectAll("g")
+        .data(data.map(d => d.key))
+        .join("g")
+        .attr("transform", (d, i) => `translate(0, ${i * 30})`);
+
+      legend.append("line")
+        .attr("x1", -20)
+        .attr("x2", 10)
+        .attr("y1", 10)
+        .attr("y2", 10)
+        .attr("stroke", d => {
+          if (d === "Vietnam") {
+            return "red";
+          } else if (d === "US") {
+            return "blue";
+          } else if (d === "France") {
+            return "green";
+          } else if (d === "Italy") {
+            return "orange";
+          }
+        })
+        .attr("stroke-width", 2);
+
+      legend.append("text")
+        .attr("x", 30)
+        .attr("y", 10)
+        .attr("dy", "0.32em")
+        .attr("cursor", "pointer")
+        .text(d => d)
+        .on("mouseover", function(d) {
+          d3.selectAll("path.line")
+            .transition()
+            .duration(200)
+            .style("opacity", 0.1);
+          //set the line of US with opacity 1
+          d3.selectAll("path.line")
+            .filter(function(e) {
+              return e.key === d.target.__data__;
+            })
+            .transition()
+            .duration(200)
+            .style("opacity", 1);
+        })
+        .on("mouseout", function(d) {
+          d3.selectAll("path.line")
+            .transition()
+            .duration(200)
+            .style("opacity", 1);
+        });;
+
+    
+    }
+  </script>
+</body>
+</html>
