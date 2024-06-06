@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 7</title>
+  <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+  <style>
+    .hidden {
+      display: none;
+    }
+    div.tooltip {
+      position: absolute;
+      text-align: center;
+      width: auto;
+      height: auto;
+      padding: 6px;
+      font: 15px sans-serif;
+      color: white;
+      background: rgb(57, 60, 63);
+      border: 5px;
+      border-radius: 8px;
+      pointer-events: none;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Lab 7 –D3.js – GeoMapping</h1>
+  <h2>Data science and data visualization</h2>
+  <p>Truong Tri Dung</p>
+  <p>ITCSIU21126</p>
+  <p>This is all my own work. I did not copy the code from any other source.</p>
+  <script>
+    var width = 1000;
+    var height = 1000;
+
+    var zoom = d3.zoom()
+        .scaleExtent([1, 40])
+        .translateExtent([ [0, 0],[width, height]])
+        .extent([[0, 0], [width, height]])
+        .on("zoom", zoomed);
+
+    var svg = d3.select("body")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .call(zoom)
+    var g = svg.append("g");
+
+    var projection = d3.geoAlbers()
+        .center([100, 4.4])
+        .rotate([2, 32])
+        .parallels([11, 20])
+        .scale([2000])
+        .translate([width / 30, height / 1.8]);
+
+    var path = d3.geoPath()
+        .projection(projection);
+
+    var tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 10);
+
+    d3.csv("https://raw.githubusercontent.com/santaduytran/IT138IU_DSDV_Coursework/main/Lab%207%20-%20D3.js%20-%20GeoMapping/covid19_province.csv", function(data) {
+    
+        d3.json("https://raw.githubusercontent.com/TungTh/tungth.github.io/master/data/vn-provinces.json", function(json) {
+
+            for (var i = 0; i < data.length; i++) { 
+                var dataProvince = parseFloat(data[i].ma);
+                console.log(json.features[0].properties.Ma);
+
+                var dataC = data[i].Confirm;
+
+                for (var j = 0; j < json.features.length; j++) {
+                    var jsonProvince = json.features[j].properties.Ma;
+                    if (dataProvince == jsonProvince) {
+                        json.features[j].properties.cases = dataC;
+                        break;
+                    }
+                }
+
+                var dataName = data[i].Province;
+
+                for (var k = 0; k < json.features.length; k++) {
+                    var jsonProvince = json.features[k].properties.Ma;
+                    if (dataProvince == jsonProvince) {
+                        json.features[k].properties.province = dataName;
+                        break;
+                    }
+                }
+            }
+
+            var map = g.selectAll("path")
+                .data(json.features)
+                .enter()
+                .append("path")
+                .attr("d", path)
+                .style("fill", function(d) {
+                    var value = d.properties.cases;
+                    if (value >= 500000) return "#f54445";
+                    else if (value >= 200000) return "#f5833e";
+                    else if (value >= 100000) return "#eccd61";
+                    else if (value >= 50000) return "#408595";
+                    else if (value >= 1000) return "#92ba6c";
+                    else return "#ccc";
+                })
+                .on("mouseover", function(d) {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .style("opacity", 1)
+                        .style("stroke", "white")
+                    tooltip
+                        .transition()
+                        .duration(200)
+                        .style("opacity", 0.9)
+                        .style("stroke", "white")
+                    tooltip.html(d.province);
+                })
+                .on("mousemove", function(d) {
+                    tooltip
+                        .style("top", (d3.event.pageY) + "px")
+                        .style("left", (d3.event.pageX + 10) + "px")
+
+                    tooltip.html(d.properties.province.bold() + " <br>Cases: " + d.properties.cases.bold());
+                })
+                .on("mouseout", function(d) {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .style("stroke", "transparent")
+                    tooltip
+                        .transition()
+                        .duration(200)
+                        .style("opacity", 0);
+                });
+        });
+    });
+
+    function zoomed() {
+        g.selectAll('path') 
+        .attr('transform', d3.event.transform);
+    }
+</script>
+</body>
+</html>
